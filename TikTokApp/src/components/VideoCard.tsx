@@ -85,42 +85,44 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* 1. Le lecteur vidéo en arrière-plan indépendant */}
+      {isValid && !hasError && (
+        <Video
+          ref={videoRef}
+          source={{ uri: finalVideoUrl }}
+          style={styles.video}
+          resizeMode={ResizeMode.COVER}
+          repeat
+          paused={!isActive || !isPlaying}
+          useTextureView={true}
+          onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
+          onLoad={() => setIsLoading(false)}
+          onReadyForDisplay={() => setIsLoading(false)}
+          onError={(e) => {
+            console.log("Erreur de décodage de la vidéo :", e);
+            setHasError(true);
+            setIsLoading(false);
+          }}
+        />
+      )}
+
+      {/* Affichage de secours en cas d'erreur de lien */}
+      {(!isValid || hasError) && (
+        <View style={[styles.video, styles.errorPlaceholder]}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Vidéo non disponible</Text>
+          <Text style={styles.errorSubtitle}>
+            Le format ou le lien de ce post de test n'est pas supporté par votre téléphone.
+          </Text>
+        </View>
+      )}
+
+      {/* 2. UNE VITRE TACTILE TRANSPARENTE POSÉE AU-DESSUS DE LA VIDÉO */}
       <TouchableOpacity
         activeOpacity={1}
         onPress={togglePlayPause}
-        style={styles.videoWrapper}
+        style={styles.touchableOverlay}
       >
-        {/* Rendu conditionnel ultra-sécurisé */}
-        {isValid && !hasError ? (
-          <Video
-            ref={videoRef}
-            source={{ uri: finalVideoUrl }}
-            style={styles.video}
-            resizeMode={ResizeMode.COVER}
-            repeat
-            paused={!isActive || !isPlaying}
-            onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
-            onLoad={() => {
-              setIsLoading(false);
-              setHasError(false);
-            }}
-            onError={(e) => {
-              console.log("Erreur de décodage de la vidéo :", e);
-              setHasError(true);
-              setIsLoading(false);
-            }}
-          />
-        ) : (
-          // Affichage de remplacement élégant en cas d'URL vide, invalide ou de lien mort
-          <View style={[styles.video, styles.errorPlaceholder]}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorTitle}>Vidéo non disponible</Text>
-            <Text style={styles.errorSubtitle}>
-              Le format ou le lien de ce post de test n'est pas supporté par votre émulateur.
-            </Text>
-          </View>
-        )}
-
         {isLoading && isValid && !hasError && (
           <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
         )}
@@ -132,6 +134,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         )}
       </TouchableOpacity>
 
+      {/* 3. L'interface d'informations et les boutons (Likes, Commentaires) */}
       <View style={styles.bottomInfo}>
         <Text style={styles.username}>@createur_{video.userId?.substring(0, 5) || 'anonyme'}</Text>
         <Text style={styles.description} numberOfLines={2}>
@@ -167,14 +170,26 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT - 60,
     backgroundColor: COLORS.black,
-  },
-  videoWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'relative',
   },
   video: {
-    ...StyleSheet.absoluteFillObject,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT - 60,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1, // La vidéo reste au niveau 1
+  },
+  // CORRECTIF : La vitre transparente prend toute la taille au niveau 2
+  touchableOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT - 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2, // Se place au-dessus de la vidéo pour capter 100% des clics
   },
   loader: {
     position: 'absolute',
@@ -193,7 +208,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 15,
     width: SCREEN_WIDTH * 0.7,
-    zIndex: 10,
+    zIndex: 10, // Reste au-dessus de la vitre tactile
   },
   username: {
     color: COLORS.white,
@@ -210,7 +225,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 15,
     alignItems: 'center',
-    zIndex: 10,
+    zIndex: 10, // Reste au-dessus de la vitre tactile
   },
   actionButton: {
     alignItems: 'center',
@@ -235,6 +250,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
+    zIndex: 1,
   },
   errorIcon: {
     fontSize: 44,

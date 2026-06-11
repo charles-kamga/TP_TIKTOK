@@ -65,8 +65,10 @@ const LoginScreen = ({ navigation }: any) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.replace('Home');
     } catch (err: any) {
+      // AJOUTEZ CETTE LIGNE DE LOG :
+      console.log("Erreur d'authentification détaillée :", err);
+
       setError(getFirebaseErrorMessage(err.code));
       triggerShake();
     } finally {

@@ -1,6 +1,6 @@
 /**
  * TikTok Clone — VideoCard.tsx
- * Lecteur vidéo vertical (branche dave)
+ * Lecteur vidéo vertical ultra-sécurisé contre les crashs
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -34,6 +34,30 @@ interface VideoCardProps {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// 1. Analyse et validation de l'URL pour éviter de faire crasher le lecteur natif
+const getValidatedAndOptimizedUrl = (url: string): { isValid: boolean; url: string } => {
+  if (!url || typeof url !== 'string') {
+    return { isValid: false, url: '' };
+  }
+
+  const cleanUrl = url.trim();
+
+  // Vérification basique du protocole
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    return { isValid: false, url: '' };
+  }
+
+  // Si c'est une URL Cloudinary, on force le format MP4 compressé
+  if (cleanUrl.includes('cloudinary.com') && cleanUrl.includes('video/upload/')) {
+    if (!cleanUrl.includes('f_mp4')) {
+      // Nous utilisons f_mp4 au lieu de f_auto pour garantir la lecture sur ExoPlayer
+      return { isValid: true, url: cleanUrl.replace('video/upload/', 'video/upload/f_mp4,q_auto/') };
+    }
+  }
+
+  return { isValid: true, url: cleanUrl };
+};
+
 const VideoCard: React.FC<VideoCardProps> = ({
   video,
   isActive,
@@ -44,6 +68,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const videoRef = useRef<VideoRef>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     if (!isActive) {
@@ -55,6 +80,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
     setIsPlaying(!isPlaying);
   };
 
+  // Traiter l'URL
+  const { isValid, url: finalVideoUrl } = getValidatedAndOptimizedUrl(video.videoUrl);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -62,21 +90,42 @@ const VideoCard: React.FC<VideoCardProps> = ({
         onPress={togglePlayPause}
         style={styles.videoWrapper}
       >
-        <Video
-          ref={videoRef}
-          source={{ uri: video.videoUrl }}
-          style={styles.video}
-          resizeMode={ResizeMode.COVER}
-          repeat
-          paused={!isActive || !isPlaying}
-          onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
-        />
+        {/* Rendu conditionnel ultra-sécurisé */}
+        {isValid && !hasError ? (
+          <Video
+            ref={videoRef}
+            source={{ uri: finalVideoUrl }}
+            style={styles.video}
+            resizeMode={ResizeMode.COVER}
+            repeat
+            paused={!isActive || !isPlaying}
+            onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
+            onLoad={() => {
+              setIsLoading(false);
+              setHasError(false);
+            }}
+            onError={(e) => {
+              console.log("Erreur de décodage de la vidéo :", e);
+              setHasError(true);
+              setIsLoading(false);
+            }}
+          />
+        ) : (
+          // Affichage de remplacement élégant en cas d'URL vide, invalide ou de lien mort
+          <View style={[styles.video, styles.errorPlaceholder]}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorTitle}>Vidéo non disponible</Text>
+            <Text style={styles.errorSubtitle}>
+              Le format ou le lien de ce post de test n'est pas supporté par votre émulateur.
+            </Text>
+          </View>
+        )}
 
-        {isLoading && (
+        {isLoading && isValid && !hasError && (
           <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
         )}
 
-        {!isPlaying && (
+        {!isPlaying && isValid && !hasError && (
           <View style={styles.playOverlay}>
             <Ionicons name="play" size={60} color="rgba(255, 255, 255, 0.8)" />
           </View>
@@ -84,9 +133,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </TouchableOpacity>
 
       <View style={styles.bottomInfo}>
-        <Text style={styles.username}>@createur_{video.userId.substring(0, 5)}</Text>
+        <Text style={styles.username}>@createur_{video.userId?.substring(0, 5) || 'anonyme'}</Text>
         <Text style={styles.description} numberOfLines={2}>
-          {video.description}
+          {video.description || 'Pas de description.'}
         </Text>
       </View>
 
@@ -99,7 +148,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
               color={isLiked ? COLORS.primary : COLORS.white}
             />
           </View>
-          <Text style={styles.actionText}>{video.likesCount}</Text>
+          <Text style={styles.actionText}>{video.likesCount || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={onComment}>
@@ -180,6 +229,29 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
+  },
+  errorPlaceholder: {
+    backgroundColor: '#151515',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  errorIcon: {
+    fontSize: 44,
+    marginBottom: 10,
+  },
+  errorTitle: {
+    color: COLORS.white,
+    fontSize: FONTS.sizes.lg,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    color: COLORS.gray,
+    fontSize: FONTS.sizes.sm,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
 

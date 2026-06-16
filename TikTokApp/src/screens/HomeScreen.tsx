@@ -11,7 +11,10 @@ import {
   Dimensions,
   ActivityIndicator,
   ViewToken,
+  TouchableOpacity,
+  Platform,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import CommentsScreen from './CommentsScreen';
 import VideoCard, { VideoData } from '../components/VideoCard';
@@ -38,7 +41,7 @@ const DEMO_VIDEOS: VideoData[] = [
   },
 ];
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }: any) => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
@@ -144,6 +147,15 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* BOUTON DE RECHERCHE FLOTTANT (En haut à droite) */}
+      <TouchableOpacity 
+        style={styles.searchButton}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('SearchUsers')}
+      >
+        <Ionicons name="search" size={26} color={COLORS.white} />
+      </TouchableOpacity>
+
       <FlatList
         data={videos}
         keyExtractor={item => item.id}
@@ -185,6 +197,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.black,
+  },
+  searchButton: {
+    position: 'absolute',
+    // On adapte la hauteur selon l'encoche de l'iPhone ou d'Android
+    top: Platform.OS === 'ios' ? 55 : 20, 
+    right: 20,
+    zIndex: 100, // Crucial : fait flotter le bouton au-dessus de toutes les vidéos
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Léger fond sombre pour que l'icône reste visible sur n'importe quelle vidéo
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

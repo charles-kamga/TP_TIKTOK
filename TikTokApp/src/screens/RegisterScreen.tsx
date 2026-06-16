@@ -9,6 +9,7 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -103,7 +104,11 @@ const RegisterScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>TikTok</Text>
+          <Image
+            source={require('../../Logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.tagline}>Crée ton compte</Text>
         </View>
 
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.black },
   scroll: { flexGrow: 1, paddingHorizontal: SPACING.lg, paddingTop: SPACING.xxl + SPACING.lg, paddingBottom: SPACING.xl },
   logoContainer: { alignItems: 'center', marginBottom: SPACING.xxl },
-  logoText: { fontSize: 42, fontWeight: '900', color: COLORS.white, letterSpacing: -1 },
+  logoImage: { width: 160, height: 80 },
   tagline: { fontSize: FONTS.sizes.md, color: COLORS.lightGray, marginTop: SPACING.xs },
   form: { gap: SPACING.md },
   inputWrapper: { marginBottom: SPACING.xs },

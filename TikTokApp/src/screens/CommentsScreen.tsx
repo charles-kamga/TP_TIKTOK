@@ -17,7 +17,8 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { auth } from '../config/firebaseconfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebaseconfig';
 import { addComment, getCommentsByVideo } from '../services/interactionService';
 import { COLORS } from '../styles/theme';
 
@@ -57,16 +58,39 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
 
     try {
       setIsSubmitting(true);
+
+      // 1. Récupérer le vrai document de l'utilisateur dans Firestore (users/{uid})
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      let username = 'Anonyme';
+      let profilePic = 'https://via.placeholder.com/32';
+
+      if (userDocSnap.exists()) {
+        const data = userDocSnap.data();
+
+        // On récupère le vrai pseudo ou on se replie sur Firebase Auth
+        username = data.username || auth.currentUser.displayName || 'Utilisateur';
+
+        // CORRECTIF D'INCOHÉRENCE : On accepte indifféremment 'profilePic' ou 'avatarUrl'
+        profilePic = data.profilePic || data.avatarUrl || auth.currentUser.photoURL || 'https://via.placeholder.com/32';
+      } else {
+        // Repli de secours si l'utilisateur n'a pas encore de document Firestore
+        username = auth.currentUser.displayName || 'Utilisateur';
+        profilePic = auth.currentUser.photoURL || 'https://via.placeholder.com/32';
+      }
+
       const userData = {
         userId: auth.currentUser.uid,
-        username: auth.currentUser.displayName || 'Utilisateur',
-        profilePic: auth.currentUser.photoURL || 'https://via.placeholder.com/32',
+        username,
+        profilePic,
       };
 
+      // 2. Envoi du commentaire
       await addComment(videoId, userData, newComment);
       setNewComment('');
-      
-      // Recharger les commentaires
+
+      // 3. Recharger la liste
       await loadComments();
     } catch (error) {
       console.error('Erreur lors de l\'ajout du commentaire:', error);
@@ -117,9 +141,15 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-      <View style={styles.container}>
+      {/* 1. Conteneur principal qui aligne la sheet en bas */}
+      <View style={styles.modalRoot}>
+        
+        {/* 2. Le fond semi-transparent absolu (cliquable pour fermer) */}
+        <Pressable style={styles.absoluteOverlay} onPress={onClose} />
+        
+        {/* 3. La feuille de commentaires */}
+        <View style={styles.sheet}>
+          <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>💬 {comments.length} commentaires</Text>
@@ -136,6 +166,7 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
         ) : (
           <FlatList
             data={comments}
+            style={styles.commentsList}
             renderItem={renderComment}
             keyExtractor={item => item.id}
             scrollEnabled={true}
@@ -171,34 +202,43 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
           </TouchableOpacity>
         </View>
       </View>
+        </View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalRoot: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 9999,
+  },
+  absoluteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    zIndex: 9999,
   },
   sheet: {
-    maxHeight: '85%',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    height: '65%',
+    backgroundColor: COLORS.black,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: 'hidden',
+    elevation: 10,
+    zIndex: 10000,
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.black,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#333',
+    borderBottomColor: '#222',
   },
   headerTitle: {
     color: COLORS.white,
@@ -209,6 +249,9 @@ const styles = StyleSheet.create({
     color: COLORS.lightGray,
     fontSize: 18,
     padding: 4,
+  },
+  commentsList: {
+    flex: 1, // FORCE la liste à ne pas dépasser l'espace disponible
   },
   listContent: {
     paddingHorizontal: 12,
@@ -311,6 +354,7 @@ const styles = StyleSheet.create({
   },
   sendIcon: {
     fontSize: 20,
+    color: COLORS.primary, // Donne une couleur (rose TikTok) pour la visibilité
   },
 });
 

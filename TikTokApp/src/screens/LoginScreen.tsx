@@ -5,7 +5,9 @@
  * la navigation fonctionne des le debut
  */
 
-
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_WEB_CLIENT_ID } from '@env';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import React, { useState, useRef } from 'react';
 import {
   View,
@@ -70,6 +72,45 @@ const LoginScreen = ({ navigation }: any) => {
       console.log("Erreur d'authentification détaillée :", err);
 
       setError(getFirebaseErrorMessage(err.code));
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      
+      // 2. Vérifier la disponibilité des Google Play Services
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      
+      // 3. Déclencher l'ouverture de la fenêtre Google
+      const signInResult = await GoogleSignin.signIn();
+      
+      // Récupérer le jeton (compatible v12 et v13 de la bibliothèque)
+      const idToken = signInResult.idToken || (signInResult as any).data?.idToken;
+
+      if (!idToken) {
+        throw new Error("Impossible de récupérer le jeton d'authentification Google.");
+      }
+
+      // 4. Créer l'identifiant Firebase avec le jeton d'accès Google
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      // 5. Connecter l'utilisateur sur Firebase
+      await signInWithCredential(auth, credential);
+      
+    } catch (err: any) {
+      console.log("Erreur Google Sign-In détaillée :", err);
+      if (err.code === 'SIGN_IN_CANCELLED') {
+        setError('Connexion annulée par l’utilisateur.');
+      } else if (err.code === 'IN_PROGRESS') {
+        setError('Connexion Google déjà en cours...');
+      } else {
+        setError('Échec de la connexion avec Google. Réessaye.');
+      }
       triggerShake();
     } finally {
       setLoading(false);
@@ -143,6 +184,16 @@ const LoginScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
+       {/* AJOUT : Bouton Google */}
+       <TouchableOpacity
+         style={[styles.googleButton, loading && styles.buttonDisabled]}
+         onPress={handleGoogleLogin}
+         disabled={loading}
+         activeOpacity={0.85}
+       >
+         <Text style={styles.googleButtonText}>🔴 Se connecter avec Google</Text>
+       </TouchableOpacity>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -170,6 +221,21 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
   footerText: { color: COLORS.lightGray, fontSize: FONTS.sizes.md },
   linkText: { color: COLORS.primary, fontSize: FONTS.sizes.md, fontWeight: '700' },
+  googleButton: {
+    backgroundColor: COLORS.white, // Bouton blanc pour trancher sur le thème noir
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    marginTop: SPACING.md,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  googleButtonText: {
+    color: COLORS.black, // Texte noir
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '800',
+  },
 });
 
 export default LoginScreen;

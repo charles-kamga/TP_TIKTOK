@@ -103,7 +103,7 @@ export const unlikeVideo = async (videoId: string, userId: string) => {
     const videoRef = doc(db, 'videos', videoId);
     await updateDoc(videoRef, {
       likesCount: increment(-1),
-    });
+    });   
   } catch (error) {
     console.error('Erreur lors de la suppression du Like :', error);
     throw error;

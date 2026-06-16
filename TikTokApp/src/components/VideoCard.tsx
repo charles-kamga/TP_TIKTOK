@@ -1,6 +1,6 @@
 /**
  * TikTok Clone — VideoCard.tsx
- * Lecteur vidéo vertical ultra-sécurisé contre les crashs
+ * Lecteur vidéo vertical HLS avec Fallback MP4 d'urgence
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -34,28 +34,31 @@ interface VideoCardProps {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// 1. Analyse et validation de l'URL pour éviter de faire crasher le lecteur natif
-const getValidatedAndOptimizedUrl = (url: string): { isValid: boolean; url: string } => {
-  if (!url || typeof url !== 'string') {
-    return { isValid: false, url: '' };
+// 1. Générer l'URL HLS (Lecture découpée)
+const getHlsUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.includes('cloudinary.com') && url.includes('video/upload/')) {
+    let hlsUrl = url;
+    if (url.endsWith('.mp4')) {
+      hlsUrl = url.substring(0, url.lastIndexOf('.mp4')) + '.m3u8';
+    }
+    if (!hlsUrl.includes('sp_auto')) {
+      return hlsUrl.replace('video/upload/', 'video/upload/sp_auto/');
+    }
+    return hlsUrl;
   }
+  return url;
+};
 
-  const cleanUrl = url.trim();
-
-  // Vérification basique du protocole
-  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-    return { isValid: false, url: '' };
-  }
-
-  // Si c'est une URL Cloudinary, on force le format MP4 compressé
-  if (cleanUrl.includes('cloudinary.com') && cleanUrl.includes('video/upload/')) {
-    if (!cleanUrl.includes('f_mp4')) {
-      // Nous utilisons f_mp4 au lieu de f_auto pour garantir la lecture sur ExoPlayer
-      return { isValid: true, url: cleanUrl.replace('video/upload/', 'video/upload/f_mp4,q_auto/') };
+// 2. Générer l'URL de repli MP4 optimisé (Disponibilité immédiate)
+const getMp4FallbackUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.includes('cloudinary.com') && url.includes('video/upload/')) {
+    if (!url.includes('f_mp4')) {
+      return url.replace('video/upload/', 'video/upload/f_mp4,q_auto/');
     }
   }
-
-  return { isValid: true, url: cleanUrl };
+  return url;
 };
 
 const VideoCard: React.FC<VideoCardProps> = ({
@@ -68,6 +71,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const videoRef = useRef<VideoRef>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // États de secours
+  const [useFallback, setUseFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -80,44 +86,93 @@ const VideoCard: React.FC<VideoCardProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  // Traiter l'URL
-  const { isValid, url: finalVideoUrl } = getValidatedAndOptimizedUrl(video.videoUrl);
+  // Préparation des deux URLs
+  const hlsUrl = getHlsUrl(video.videoUrl);
+  const mp4FallbackUrl = getMp4FallbackUrl(video.videoUrl);
+
+  // Choix de l'URL active
+  const currentVideoUrl = useFallback ? mp4FallbackUrl : hlsUrl;
+  const currentVideoType = useFallback ? undefined : 'm3u8';
+
+  const isValid = !!video.videoUrl && (video.videoUrl.startsWith('http://') || video.videoUrl.startsWith('https://'));
+
+
+  // CORRECTIF DE RAPIDITÉ : Court-circuit (Timeout) de 2.5 secondes
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    // Si la vidéo est active, en cours de chargement et que nous n'avons pas encore basculé
+    if (isActive && isLoading && !useFallback && !hasError) {
+      timeoutId = setTimeout(() => {
+        // Si après 2.5 secondes le loader tourne toujours, on force la bascule MP4 d'urgence
+        if (isLoading) {
+          console.log("⏰ HLS trop long à charger (limite de 2.5s atteinte). Bascule d'urgence immédiate vers MP4 !");
+          setUseFallback(true);
+        }
+      }, 2500); // 2500 millisecondes (ajustable selon vos préférences)
+    }
+
+    // Nettoyage du minuteur si le composant est désactivé ou si le chargement se termine
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isActive, isLoading, useFallback, hasError]);
+  
 
   return (
     <View style={styles.container}>
-      {/* 1. Le lecteur vidéo en arrière-plan indépendant */}
+      {/* 1. Le lecteur vidéo en arrière-plan */}
       {isValid && !hasError && (
         <Video
           ref={videoRef}
-          source={{ uri: finalVideoUrl }}
+          // CORRECTIF 1 : On passe uniquement l'URI, sans forcer la propriété "type"
+          // pour laisser ExoPlayer détecter et lier automatiquement l'audio et la vidéo.
+          source={{ uri: currentVideoUrl }} 
           style={styles.video}
           resizeMode={ResizeMode.COVER}
           repeat
           paused={!isActive || !isPlaying}
           useTextureView={true}
+          
+          // CORRECTIF 2 : On force la gestion du volume à 1.0 (non muet) pour Android
+          volume={1.0}
+          muted={false}
+
           onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => {
+            setIsLoading(false);
+            setHasError(false);
+          }}
           onReadyForDisplay={() => setIsLoading(false)}
           onError={(e) => {
-            console.log("Erreur de décodage de la vidéo :", e);
-            setHasError(true);
-            setIsLoading(false);
+            console.log("Erreur détectée sur la vidéo :", e);
+            
+            if (!useFallback) {
+              console.log("Bascule automatique en cours vers le MP4 d'urgence...");
+              setUseFallback(true);
+              setIsLoading(true);
+            } else {
+              setHasError(true);
+              setIsLoading(false);
+            }
           }}
         />
       )}
 
-      {/* Affichage de secours en cas d'erreur de lien */}
+      {/* Affichage de secours en cas d'erreur de lien définitive */}
       {(!isValid || hasError) && (
         <View style={[styles.video, styles.errorPlaceholder]}>
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorTitle}>Vidéo non disponible</Text>
           <Text style={styles.errorSubtitle}>
-            Le format ou le lien de ce post de test n'est pas supporté par votre téléphone.
+            Le format ou le lien de ce post n'est pas supporté.
           </Text>
         </View>
       )}
 
-      {/* 2. UNE VITRE TACTILE TRANSPARENTE POSÉE AU-DESSUS DE LA VIDÉO */}
+      {/* 2. Vitre tactile pour la pause/lecture */}
       <TouchableOpacity
         activeOpacity={1}
         onPress={togglePlayPause}
@@ -134,11 +189,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
         )}
       </TouchableOpacity>
 
-      {/* 3. L'interface d'informations et les boutons (Likes, Commentaires) */}
+      {/* 3. Informations de bas de carte */}
       <View style={styles.bottomInfo}>
         <Text style={styles.username}>@createur_{video.userId?.substring(0, 5) || 'anonyme'}</Text>
         <Text style={styles.description} numberOfLines={2}>
           {video.description || 'Pas de description.'}
+        </Text>
+        {/* Petit badge optionnel indiquant si la vidéo tourne en mode découpé (HLS) ou optimisé de secours (MP4) */}
+        <Text style={{ color: COLORS.gray, fontSize: 10, marginTop: 5 }}>
+          Mode de flux : {useFallback ? '⚡ MP4 d\'urgence' : '📡 HLS découpé'}
         </Text>
       </View>
 
@@ -178,9 +237,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    zIndex: 1, // La vidéo reste au niveau 1
+    zIndex: 1,
   },
-  // CORRECTIF : La vitre transparente prend toute la taille au niveau 2
   touchableOverlay: {
     position: 'absolute',
     top: 0,
@@ -189,7 +247,7 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT - 60,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2, // Se place au-dessus de la vidéo pour capter 100% des clics
+    zIndex: 2,
   },
   loader: {
     position: 'absolute',
@@ -208,7 +266,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 15,
     width: SCREEN_WIDTH * 0.7,
-    zIndex: 10, // Reste au-dessus de la vitre tactile
+    zIndex: 10,
   },
   username: {
     color: COLORS.white,
@@ -225,7 +283,7 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 15,
     alignItems: 'center',
-    zIndex: 10, // Reste au-dessus de la vitre tactile
+    zIndex: 10,
   },
   actionButton: {
     alignItems: 'center',

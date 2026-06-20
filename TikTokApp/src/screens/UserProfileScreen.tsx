@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebaseconfig';
+import { auth } from '../config/firebaseconfig';
+import { getUserProfile } from '../services/userService';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
 
 const UserProfileScreen = ({ route, navigation }: any) => {
@@ -23,11 +23,10 @@ const UserProfileScreen = ({ route, navigation }: any) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const docRef = doc(db, 'users', userId);
-        const docSnap = await getDoc(docRef);
+        const data = await getUserProfile(userId);
 
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
+        if (data) {
+          setProfile(data);
         } else {
           Alert.alert('Erreur', 'Cet utilisateur n’existe plus.');
           navigation.goBack();
@@ -40,7 +39,7 @@ const UserProfileScreen = ({ route, navigation }: any) => {
     };
 
     fetchProfile();
-  }, [userId]);
+  }, [userId, navigation]);
 
   if (loading) {
     return (

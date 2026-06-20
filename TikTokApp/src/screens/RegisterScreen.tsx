@@ -21,8 +21,8 @@ import {
   StatusBar,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../config/firebaseconfig';
+import { auth } from '../config/firebaseconfig';
+import { createUserProfile } from '../services/userService';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
 
 const getFirebaseErrorMessage = (code: string): string => {
@@ -77,17 +77,8 @@ const RegisterScreen = ({ navigation }: any) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
 
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email,
-        username: '',
-        bio: '',
-        avatarUrl: '',
-        followers: 0,
-        following: 0,
-        likes: 0,
-        createdAt: serverTimestamp(),
-      });
+      // Utilisation du service centralisé pour créer le profil
+      await createUserProfile(user.uid, user.email || '');
 
       navigation.replace('Home');
     } catch (err: any) {

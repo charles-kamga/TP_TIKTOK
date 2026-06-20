@@ -14,11 +14,8 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebaseconfig';
+import { CLOUDINARY_CONFIG } from '../config/cloudinaryConfig';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
-
-// Vos paramètres de configuration Cloudinary existants
-const CLOUDINARY_CLOUD_NAME = 'dmuwi00uj';
-const CLOUDINARY_UPLOAD_PRESET = 't1ahbbgz'; // preset pour les vidéos
 
 const UploadScreen = ({ navigation }: any) => {
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -70,11 +67,12 @@ const UploadScreen = ({ navigation }: any) => {
         type: videoType,
         name: videoName,
       } as any);
-      data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      data.append('upload_preset', CLOUDINARY_CONFIG.videoUploadPreset || 't1ahbbgz');
 
       // 2. Envoi de la vidéo vers l'API REST de Cloudinary
+      const cloudName = CLOUDINARY_CONFIG.cloudName || 'dmuwi00uj';
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
         {
           method: 'POST',
           body: data,

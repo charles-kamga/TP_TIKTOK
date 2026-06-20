@@ -20,6 +20,7 @@ import CommentsScreen from './CommentsScreen';
 import VideoCard, { VideoData } from '../components/VideoCard';
 import { auth, db } from '../config/firebaseconfig';
 import { likeVideo, unlikeVideo } from '../services/interactionService';
+import { getUserProfile } from '../services/userService';
 import { COLORS } from '../styles/theme';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -48,6 +49,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [videoLikeCounts, setVideoLikeCounts] = useState<Record<string, number>>({});
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
 
   const loadVideos = useCallback(async () => {
     try {
@@ -81,6 +83,25 @@ const HomeScreen = ({ navigation }: any) => {
       fetched.forEach(v => { counts[v.id] = v.likesCount; });
       setVideoLikeCounts(counts);
       setActiveVideoId(fetched[0]?.id ?? null);
+
+      // Fetch usernames for each unique userId
+      const uniqueUserIds = [...new Set(fetched.map(v => v.userId))];
+      const usernameMap: Record<string, string> = {};
+      
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          try {
+            const profile = await getUserProfile(userId);
+            if (profile?.username) {
+              usernameMap[userId] = profile.username;
+            }
+          } catch (error) {
+            console.error('Erreur récupération username:', error);
+          }
+        })
+      );
+      
+      setUsernames(usernameMap);
     } catch (error) {
       console.error('Erreur chargement vidéos:', error);
       setVideos(DEMO_VIDEOS);
@@ -166,6 +187,8 @@ const HomeScreen = ({ navigation }: any) => {
             isLiked={likedVideos.has(item.id)}
             onLike={() => handleLike(item.id)}
             onComment={() => setSelectedVideoId(item.id)}
+            navigation={navigation}
+            username={usernames[item.userId]}
           />
         )}
         pagingEnabled

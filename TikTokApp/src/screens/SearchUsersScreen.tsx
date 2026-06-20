@@ -7,10 +7,10 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebaseconfig';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
 
@@ -19,7 +19,7 @@ const SearchUsersScreen = ({ navigation }: any) => {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (text: string) => {
+  const performSearch = async (text: string) => {
     setSearchQuery(text);
     if (!text.trim()) {
       setResults([]);
@@ -28,22 +28,26 @@ const SearchUsersScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'users'),
-        where('username', '>=', text.trim()),
-        where('username', '<=', text.trim() + '\uf8ff'),
-        limit(10)
-      );
+      // 1. On récupère la collection entière (très léger pour un TP)
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      
+      const searchLower = text.toLowerCase();
+      const filteredUsers: any[] = [];
 
-      const querySnapshot = await getDocs(q);
-      const users: any[] = [];
       querySnapshot.forEach((doc) => {
-        users.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // 2. Vérification sur le username en ignorant la casse (toLower)
+        const username = (data.username || '').toLowerCase();
+        
+        if (username.includes(searchLower)) {
+          filteredUsers.push({ id: doc.id, ...data });
+        }
       });
 
-      setResults(users);
+      setResults(filteredUsers);
     } catch (error) {
-      console.error('Erreur lors de la recherche :', error);
+      console.error('Erreur recherche :', error);
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,7 @@ const SearchUsersScreen = ({ navigation }: any) => {
           placeholder="Rechercher un utilisateur par pseudo..."
           placeholderTextColor={COLORS.gray}
           value={searchQuery}
-          onChangeText={handleSearch}
+          onChangeText={performSearch}
           autoCapitalize="none"
           autoCorrect={false}
         />

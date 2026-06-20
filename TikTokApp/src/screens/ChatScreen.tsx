@@ -9,18 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { auth, db } from '../config/firebaseconfig';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth } from '../config/firebaseconfig';
+import { getChatId, sendMessage, subscribeToMessages } from '../services/chatService';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
 
 const ChatScreen = ({ route, navigation }: any) => {
@@ -34,40 +26,20 @@ const ChatScreen = ({ route, navigation }: any) => {
 
   const currentUser = auth.currentUser;
 
-  // Écouter les messages en temps réel
+  // Écouter les messages en temps réel avec le nouveau service
   useEffect(() => {
     if (!currentUser) return;
 
-    // Requête pour récupérer les messages échangés uniquement entre ces deux utilisateurs
-    const q = query(
-      collection(db, 'messages'),
-      where('members', 'array-contains', currentUser.uid),
-      orderBy('createdAt', 'asc')
-    );
-
-    // Écouteur temps réel (onSnapshot)
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allMessages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Filtrer en local pour ne garder que la discussion privée entre currentUser et receiverId
-      const privateMessages = allMessages.filter(
-        (msg: any) => msg.receiverId === receiverId || msg.senderId === receiverId
-      );
-
-      setMessages(privateMessages);
-      setLoading(false);
-    }, (error) => {
-      console.error("Erreur d'écoute des messages :", error);
+    const chatId = getChatId(currentUser.uid, receiverId);
+    const unsubscribe = subscribeToMessages(chatId, (messages) => {
+      setMessages(messages);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [receiverId]);
 
-  // Envoyer un message
+  // Envoyer un message avec le nouveau service
   const handleSendMessage = async () => {
     if (!inputText.trim() || !currentUser) return;
 
@@ -75,13 +47,8 @@ const ChatScreen = ({ route, navigation }: any) => {
     setInputText('');
 
     try {
-      await addDoc(collection(db, 'messages'), {
-        senderId: currentUser.uid,
-        receiverId: receiverId,
-        text: textToSend,
-        createdAt: serverTimestamp(),
-        members: [currentUser.uid, receiverId], // Permet la recherche bidirectionnelle
-      });
+      const chatId = getChatId(currentUser.uid, receiverId);
+      await sendMessage(chatId, textToSend, currentUser.uid);
     } catch (error) {
       console.error("Erreur lors de l'envoi :", error);
     }

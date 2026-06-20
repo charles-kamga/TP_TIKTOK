@@ -48,7 +48,7 @@ interface VideoItem {
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_ITEM_SIZE = (SCREEN_WIDTH - 4) / 3;
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }: any) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [videos, setVideos] = useState<VideoItem[]>([]);
@@ -149,6 +149,12 @@ const ProfileScreen = () => {
         <View style={{ padding: SPACING.md }}>
           <Text style={commonStyles.textBold}>{profile?.username}</Text>
           <Text style={commonStyles.textPrimary}>{profile?.bio || 'Pas de bio'}</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('UsersList')}>
+            <Text style={{color: COLORS.primary, marginTop: 8}}>Voir tous les utilisateurs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('MessagesList')}>
+            <Text style={{color: COLORS.primary, marginTop: 8}}>💬 Messages</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={commonStyles.buttonOutline} onPress={() => setEditModalVisible(true)}>

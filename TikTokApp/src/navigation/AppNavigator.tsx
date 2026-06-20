@@ -16,6 +16,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SearchUsersScreen from '../screens/SearchUsersScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import UsersListScreen from '../screens/UsersListScreen';
+import MessagesListScreen from '../screens/MessagesListScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -74,6 +76,8 @@ const AppNavigator = () => {
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="SearchUsers" component={SearchUsersScreen} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="UsersList" component={UsersListScreen} />
+      <Stack.Screen name="MessagesList" component={MessagesListScreen} />
     </Stack.Navigator>
   );
 };

@@ -30,6 +30,8 @@ interface VideoCardProps {
   isLiked?: boolean;
   onLike?: () => void;
   onComment?: () => void;
+  navigation?: any;
+  username?: string;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -67,12 +69,13 @@ const VideoCard: React.FC<VideoCardProps> = ({
   isLiked = false,
   onLike,
   onComment,
+  navigation,
+  username,
 }) => {
   const videoRef = useRef<VideoRef>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // États de secours
+
   const [useFallback, setUseFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -86,77 +89,28 @@ const VideoCard: React.FC<VideoCardProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  // Préparation des deux URLs
   const hlsUrl = getHlsUrl(video.videoUrl);
   const mp4FallbackUrl = getMp4FallbackUrl(video.videoUrl);
-
-  // Choix de l'URL active
   const currentVideoUrl = useFallback ? mp4FallbackUrl : hlsUrl;
-  const currentVideoType = useFallback ? undefined : 'm3u8';
 
   const isValid = !!video.videoUrl && (video.videoUrl.startsWith('http://') || video.videoUrl.startsWith('https://'));
-
-
-  // CORRECTIF DE RAPIDITÉ : Court-circuit (Timeout) de 2.5 secondes
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    // Si la vidéo est active, en cours de chargement et que nous n'avons pas encore basculé
-    if (isActive && isLoading && !useFallback && !hasError) {
-      timeoutId = setTimeout(() => {
-        // Si après 2.5 secondes le loader tourne toujours, on force la bascule MP4 d'urgence
-        if (isLoading) {
-          console.log("⏰ HLS trop long à charger (limite de 2.5s atteinte). Bascule d'urgence immédiate vers MP4 !");
-          setUseFallback(true);
-        }
-      }, 2500); // 2500 millisecondes (ajustable selon vos préférences)
-    }
-
-    // Nettoyage du minuteur si le composant est désactivé ou si le chargement se termine
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isActive, isLoading, useFallback, hasError]);
-  
 
   return (
     <View style={styles.container}>
       {/* 1. Le lecteur vidéo en arrière-plan */}
-      {isValid && !hasError && (
+      {isValid && (
         <Video
-          ref={videoRef}
-          // CORRECTIF 1 : On passe uniquement l'URI, sans forcer la propriété "type"
-          // pour laisser ExoPlayer détecter et lier automatiquement l'audio et la vidéo.
-          source={{ uri: currentVideoUrl }} 
+          source={{ uri: currentVideoUrl }}
           style={styles.video}
           resizeMode={ResizeMode.COVER}
           repeat
           paused={!isActive || !isPlaying}
           useTextureView={true}
-          
-          // CORRECTIF 2 : On force la gestion du volume à 1.0 (non muet) pour Android
-          volume={1.0}
-          muted={false}
-
-          onBuffer={({ isBuffering }) => setIsLoading(isBuffering)}
-          onLoad={() => {
-            setIsLoading(false);
-            setHasError(false);
-          }}
-          onReadyForDisplay={() => setIsLoading(false)}
+          hideShutterView={true}
+          onLoad={() => setIsLoading(false)}
           onError={(e) => {
-            console.log("Erreur détectée sur la vidéo :", e);
-            
-            if (!useFallback) {
-              console.log("Bascule automatique en cours vers le MP4 d'urgence...");
-              setUseFallback(true);
-              setIsLoading(true);
-            } else {
-              setHasError(true);
-              setIsLoading(false);
-            }
+            console.log("Erreur vidéo:", e);
+            if (!useFallback) setUseFallback(true);
           }}
         />
       )}
@@ -191,13 +145,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
       {/* 3. Informations de bas de carte */}
       <View style={styles.bottomInfo}>
-        <Text style={styles.username}>@createur_{video.userId?.substring(0, 5) || 'anonyme'}</Text>
+        <TouchableOpacity onPress={() => navigation?.navigate('Chat', { receiverId: video.userId, receiverName: username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}` })}>
+          <Text style={styles.username}>@{username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}`}</Text>
+        </TouchableOpacity>
         <Text style={styles.description} numberOfLines={2}>
           {video.description || 'Pas de description.'}
-        </Text>
-        {/* Petit badge optionnel indiquant si la vidéo tourne en mode découpé (HLS) ou optimisé de secours (MP4) */}
-        <Text style={{ color: COLORS.gray, fontSize: 10, marginTop: 5 }}>
-          Mode de flux : {useFallback ? '⚡ MP4 d\'urgence' : '📡 HLS découpé'}
         </Text>
       </View>
 

@@ -9,6 +9,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
@@ -127,10 +128,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
       )}
 
       {/* 2. Vitre tactile pour la pause/lecture */}
-      <TouchableOpacity
-        activeOpacity={1}
+      <Pressable
         onPress={togglePlayPause}
         style={styles.touchableOverlay}
+        testID="video-touchable"
       >
         {isLoading && isValid && !hasError && (
           <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
@@ -141,11 +142,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
             <Ionicons name="play" size={60} color="rgba(255, 255, 255, 0.8)" />
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
 
       {/* 3. Informations de bas de carte */}
       <View style={styles.bottomInfo}>
-        <TouchableOpacity onPress={() => navigation?.navigate('Chat', { receiverId: video.userId, receiverName: username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}` })}>
+        <TouchableOpacity onPress={() => navigation?.navigate('Chat', { receiverId: video.userId, receiverName: username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}` })} activeOpacity={0.7}>
           <Text style={styles.username}>@{username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}`}</Text>
         </TouchableOpacity>
         <Text style={styles.description} numberOfLines={2}>
@@ -154,7 +155,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </View>
 
       <View style={styles.sideActions}>
-        <TouchableOpacity style={styles.actionButton} onPress={onLike}>
+        <TouchableOpacity style={styles.actionButton} onPress={onLike} activeOpacity={0.7}>
           <View style={styles.iconCircle}>
             <Ionicons
               name="heart"
@@ -165,7 +166,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <Text style={styles.actionText}>{video.likesCount || 0}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={onComment}>
+        <TouchableOpacity style={styles.actionButton} onPress={onComment} activeOpacity={0.7}>
           <View style={styles.iconCircle}>
             <Ionicons name="chatbubble-ellipses" size={28} color={COLORS.white} />
           </View>
@@ -249,6 +250,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 5,
+    marginRight: 0,
   },
   actionText: {
     color: COLORS.white,

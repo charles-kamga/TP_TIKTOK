@@ -5,10 +5,10 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../config/firebaseconfig';
 import { getUserProfile } from '../services/userService';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';

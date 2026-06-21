@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../config/firebaseconfig';
 import { subscribeToUserRooms } from '../services/chatService';
 import { getUserProfile } from '../services/userService';

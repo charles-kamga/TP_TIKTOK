@@ -1,0 +1,47 @@
+name: Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - final-mvp
+  pull_request:
+    branches:
+      - main
+      - final-mvp
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd TikTokApp
+          npm install
+
+      - name: Build Android Release APK
+        run: |
+          cd TikTokApp/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: TikTokApp/android/app/build/outputs/apk/release/app-release.apk

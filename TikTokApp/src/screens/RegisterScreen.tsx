@@ -76,7 +76,8 @@ const RegisterScreen = ({ navigation }: any) => {
       // Utilisation du service centralisé pour créer le profil
       await createUserProfile(user.uid, user.email || '');
 
-      navigation.replace('Home');
+      // Firebase va déclencher onAuthStateChanged dans App.tsx
+      // qui basculera automatiquement vers AppNavigator
     } catch (err: any) {
       setError(getFirebaseErrorMessage(err.code));
       triggerShake();

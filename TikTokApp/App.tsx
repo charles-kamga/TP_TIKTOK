@@ -1,8 +1,4 @@
-/**
- * TikTok Clone — App.tsx
- * Chef de projet : Patricia
- * Point d'entree principal de l'application
- */
+
 import { COLORS } from './src/styles/theme';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';

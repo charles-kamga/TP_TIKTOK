@@ -7,6 +7,7 @@ import { FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_S
 
 // Configuration Firebase issue de google-services.json
 const firebaseConfig = {
+
   apiKey: FIREBASE_API_KEY,
   authDomain: FIREBASE_AUTH_DOMAIN,
   projectId: FIREBASE_PROJECT_ID,
@@ -15,6 +16,7 @@ const firebaseConfig = {
   appId: FIREBASE_APP_ID,
   measurementId: FIREBASE_MEASUREMENT_ID
 };
+
 
 // 1. Initialiser l'application Firebase
 const app = initializeApp(firebaseConfig);

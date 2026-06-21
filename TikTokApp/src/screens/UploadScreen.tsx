@@ -1,9 +1,12 @@
+
+
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+
   TextInput,
   ActivityIndicator,
   Alert,
@@ -128,10 +131,12 @@ const UploadScreen = ({ navigation }: any) => {
       Alert.alert('Erreur de publication', error.message || 'Une erreur est survenue lors de l’upload.');
     } finally {
       setLoading(false);
+
     }
   };
 
   return (
+
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <Header title="Créer un Post" />
 
@@ -175,9 +180,11 @@ const UploadScreen = ({ navigation }: any) => {
               maxLength={150}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
+
             />
             <Text style={styles.charCount}>{description.length}/150</Text>
           </View>
+
 
           {/* Bouton de publication */}
           <TouchableOpacity
@@ -201,12 +208,14 @@ const UploadScreen = ({ navigation }: any) => {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+
     backgroundColor: COLORS.blackDeep,
   },
   scrollContainer: {
@@ -324,6 +333,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+
   },
 });
 

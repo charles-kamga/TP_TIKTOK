@@ -11,11 +11,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { auth, db } from '../config/firebaseconfig';
 import { CLOUDINARY_CONFIG } from '../config/cloudinaryConfig';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
+import Header from '../components/Header';
 
 const UploadScreen = ({ navigation }: any) => {
   const [videoUri, setVideoUri] = useState<string | null>(null);
@@ -23,6 +26,7 @@ const UploadScreen = ({ navigation }: any) => {
   const [videoName, setVideoName] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Étape 1 : Sélectionner la vidéo de la galerie
   const selectVideo = () => {
@@ -128,95 +132,100 @@ const UploadScreen = ({ navigation }: any) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Créer un Post 🎥</Text>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <Header title="Créer un Post" />
 
-        {/* Zone de sélection de vidéo */}
-        <TouchableOpacity style={styles.uploadArea} onPress={selectVideo} activeOpacity={0.8}>
-          {videoUri ? (
-            <View style={styles.selectedContainer}>
-              <Text style={styles.icon}>✅</Text>
-              <Text style={styles.selectedText}>Vidéo sélectionnée !</Text>
-              <Text style={styles.fileName}>{videoName}</Text>
-              <Text style={styles.changeBtnText}>Changer de vidéo</Text>
-            </View>
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <Text style={styles.icon}>📤</Text>
-              <Text style={styles.placeholderText}>Sélectionner une vidéo</Text>
-              <Text style={styles.placeholderSub}>Format MP4 recommandé</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          {/* Zone de sélection de vidéo */}
+          <TouchableOpacity style={styles.uploadArea} onPress={selectVideo} activeOpacity={0.8}>
+            {videoUri ? (
+              <View style={styles.selectedContainer}>
+                <Ionicons name="checkmark-circle-outline" size={54} color={COLORS.success} style={{ marginBottom: 12 }} />
+                <Text style={styles.selectedText}>Vidéo sélectionnée !</Text>
+                <Text style={styles.fileName} numberOfLines={1}>{videoName}</Text>
+                <Text style={styles.changeBtnText}>Changer de vidéo</Text>
+              </View>
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <Ionicons name="cloud-upload-outline" size={54} color={COLORS.primary} style={{ marginBottom: 12 }} />
+                <Text style={styles.placeholderText}>Sélectionner une vidéo</Text>
+                <Text style={styles.placeholderSub}>Format MP4 recommandé</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Champ Description */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Écrivez une légende captivante pour votre vidéo..."
-            placeholderTextColor={COLORS.gray}
-            multiline
-            numberOfLines={4}
-            value={description}
-            onChangeText={setDescription}
-            maxLength={150}
-          />
-          <Text style={styles.charCount}>{description.length}/150</Text>
-        </View>
+          {/* Champ Description */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[
+                styles.textInput,
+                isFocused && styles.textInputFocused,
+              ]}
+              placeholder="Écrivez une légende captivante pour votre vidéo..."
+              placeholderTextColor={COLORS.gray}
+              multiline
+              numberOfLines={4}
+              value={description}
+              onChangeText={setDescription}
+              maxLength={150}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+            />
+            <Text style={styles.charCount}>{description.length}/150</Text>
+          </View>
 
-        {/* Bouton de publication */}
-        <TouchableOpacity
-          style={[styles.publishButton, (!videoUri || loading) && styles.disabledButton]}
-          onPress={handlePublish}
-          disabled={!videoUri || loading}
-        >
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={COLORS.white} size="small" />
-              <Text style={styles.publishButtonText}> Publication en cours...</Text>
-            </View>
-          ) : (
-            <Text style={styles.publishButtonText}>Publier la vidéo</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Bouton de publication */}
+          <TouchableOpacity
+            style={[
+              styles.publishButton,
+              (!videoUri || loading) ? styles.disabledButton : styles.enabledButton,
+            ]}
+            onPress={handlePublish}
+            disabled={!videoUri || loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={COLORS.white} size="small" style={{ marginRight: 8 }} />
+                <Text style={styles.publishButtonText}>Publication en cours...</Text>
+              </View>
+            ) : (
+              <Text style={styles.publishButtonText}>Publier la vidéo</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.blackDeep,
   },
   scrollContainer: {
     flexGrow: 1,
     padding: SPACING.lg,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-  },
   uploadArea: {
-    height: 220,
-    borderWidth: 2,
+    height: 240,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
     borderStyle: 'dashed',
-    borderRadius: BORDER_RADIUS.xl,
-    backgroundColor: COLORS.darkGray,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.darkObsidian,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xl,
     overflow: 'hidden',
+    ...SHADOWS.soft,
   },
   placeholderContainer: {
     alignItems: 'center',
@@ -225,14 +234,11 @@ const styles = StyleSheet.create({
   selectedContainer: {
     alignItems: 'center',
     padding: SPACING.md,
-  },
-  icon: {
-    fontSize: 48,
-    marginBottom: SPACING.sm,
+    width: '100%',
   },
   placeholderText: {
     color: COLORS.white,
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.lg - 1,
     fontWeight: '700',
   },
   placeholderSub: {
@@ -242,20 +248,21 @@ const styles = StyleSheet.create({
   },
   selectedText: {
     color: COLORS.white,
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.lg - 1,
     fontWeight: '700',
   },
   fileName: {
     color: COLORS.lightGray,
-    fontSize: FONTS.sizes.md,
-    marginTop: 5,
+    fontSize: FONTS.sizes.md - 1,
+    marginTop: 6,
     textAlign: 'center',
+    paddingHorizontal: 20,
   },
   changeBtnText: {
     color: COLORS.primary,
     fontWeight: '700',
     marginTop: SPACING.md,
-    textDecorationLine: 'underline',
+    fontSize: FONTS.sizes.sm + 1,
   },
   inputContainer: {
     marginBottom: SPACING.xl,
@@ -269,15 +276,22 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   textInput: {
-    backgroundColor: COLORS.darkGray,
+    backgroundColor: COLORS.darkObsidian,
     color: COLORS.white,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: SPACING.md,
-    height: 100,
+    height: 110,
     textAlignVertical: 'top',
     fontSize: FONTS.sizes.md,
+  },
+  textInputFocused: {
+    borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   charCount: {
     color: COLORS.gray,
@@ -286,26 +300,25 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   publishButton: {
-    backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+  },
+  enabledButton: {
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.glowPrimary,
   },
   disabledButton: {
     opacity: 0.5,
-    backgroundColor: COLORS.darkGray,
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: COLORS.darkObsidian,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   publishButtonText: {
     color: COLORS.white,
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.lg - 1,
     fontWeight: '800',
+    letterSpacing: 0.5,
   },
   loadingRow: {
     flexDirection: 'row',

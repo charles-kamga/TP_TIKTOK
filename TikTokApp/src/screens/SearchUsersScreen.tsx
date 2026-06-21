@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, getDocs } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { db } from '../config/firebaseconfig';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
+import Header from '../components/Header';
 
 const SearchUsersScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +30,6 @@ const SearchUsersScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      // 1. On récupère la collection entière (très léger pour un TP)
       const usersRef = collection(db, 'users');
       const querySnapshot = await getDocs(usersRef);
       
@@ -37,7 +38,6 @@ const SearchUsersScreen = ({ navigation }: any) => {
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // 2. Vérification sur le username en ignorant la casse (toLower)
         const username = (data.username || '').toLowerCase();
         
         if (username.includes(searchLower)) {
@@ -51,6 +51,11 @@ const SearchUsersScreen = ({ navigation }: any) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setResults([]);
   };
 
   const renderUserItem = ({ item }: any) => (
@@ -67,26 +72,32 @@ const SearchUsersScreen = ({ navigation }: any) => {
         <Text style={styles.username}>@{item.username || 'utilisateur'}</Text>
         {item.bio ? <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text> : null}
       </View>
-      <Text style={styles.arrow}>❯</Text>
+      <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Rechercher 🔍</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <Header title="Rechercher" showBackButton />
 
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Rechercher un utilisateur par pseudo..."
-          placeholderTextColor={COLORS.gray}
-          value={searchQuery}
-          onChangeText={performSearch}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+      <View style={styles.searchBarWrapper}>
+        <View style={styles.searchBarContainer}>
+          <Ionicons name="search" size={20} color={COLORS.lightGray} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher un pseudo..."
+            placeholderTextColor={COLORS.gray}
+            value={searchQuery}
+            onChangeText={performSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.trim().length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearButton} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={18} color={COLORS.lightGray} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {loading ? (
@@ -102,6 +113,7 @@ const SearchUsersScreen = ({ navigation }: any) => {
           ListEmptyComponent={
             searchQuery.trim() ? (
               <View style={styles.center}>
+                <Ionicons name="people-outline" size={44} color={COLORS.gray} style={{ marginBottom: 10 }} />
                 <Text style={styles.emptyText}>Aucun utilisateur trouvé 😕</Text>
               </View>
             ) : null
@@ -113,20 +125,82 @@ const SearchUsersScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.black },
-  header: { paddingHorizontal: 16, paddingVertical: 14 },
-  title: { fontSize: 24, fontWeight: '800', color: COLORS.white },
-  searchBarContainer: { paddingHorizontal: 16, marginBottom: 12 },
-  searchInput: { backgroundColor: COLORS.darkGray, color: COLORS.white, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, borderWidth: 1, borderColor: COLORS.border },
-  list: { paddingHorizontal: 16 },
-  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', padding: 12, borderRadius: BORDER_RADIUS.lg, marginBottom: 10, borderWidth: 0.5, borderColor: COLORS.border },
-  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  userInfo: { flex: 1 },
-  username: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
-  bio: { color: COLORS.lightGray, fontSize: 13, marginTop: 4 },
-  arrow: { color: COLORS.gray, fontSize: 16, marginRight: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
-  emptyText: { color: COLORS.lightGray, fontSize: 14 },
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.blackDeep 
+  },
+  searchBarWrapper: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  searchBarContainer: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.darkObsidian, 
+    borderRadius: BORDER_RADIUS.lg, 
+    paddingHorizontal: SPACING.md, 
+    borderWidth: 1, 
+    borderColor: COLORS.border 
+  },
+  searchIcon: {
+    marginRight: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    color: COLORS.white,
+    fontSize: FONTS.sizes.md + 1,
+    paddingVertical: 12,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  list: { 
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+  },
+  userCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: COLORS.darkObsidian, 
+    padding: 12, 
+    borderRadius: BORDER_RADIUS.md, 
+    marginBottom: 10, 
+    borderWidth: 0.5, 
+    borderColor: COLORS.border,
+    ...SHADOWS.soft,
+  },
+  avatar: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    marginRight: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  userInfo: { 
+    flex: 1 
+  },
+  username: { 
+    color: COLORS.white, 
+    fontSize: FONTS.sizes.md, 
+    fontWeight: '700' 
+  },
+  bio: { 
+    color: COLORS.lightGray, 
+    fontSize: FONTS.sizes.xs + 2, 
+    marginTop: 4 
+  },
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 40 
+  },
+  emptyText: { 
+    color: COLORS.lightGray, 
+    fontSize: FONTS.sizes.md - 1 
+  },
 });
 
 export default SearchUsersScreen;

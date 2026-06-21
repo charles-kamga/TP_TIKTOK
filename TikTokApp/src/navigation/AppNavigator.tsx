@@ -19,6 +19,8 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import UsersListScreen from '../screens/UsersListScreen';
 import MessagesListScreen from '../screens/MessagesListScreen';
 
+import { COLORS } from '../styles/theme';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -28,15 +30,15 @@ const MainTabs = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#000000',
-          borderTopColor: '#222222',
+          backgroundColor: COLORS.blackDeep,
+          borderTopColor: COLORS.border,
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: '#888888',
+        tabBarActiveTintColor: COLORS.white,
+        tabBarInactiveTintColor: COLORS.lightGray,
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
+          let iconName: string;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';

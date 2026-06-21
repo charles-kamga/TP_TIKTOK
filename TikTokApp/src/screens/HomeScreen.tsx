@@ -213,13 +213,13 @@ const HomeScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.blackDeep,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.blackDeep,
   },
   searchButton: {
     position: 'absolute',
@@ -227,12 +227,19 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 55 : 20, 
     right: 20,
     zIndex: 100, // Crucial : fait flotter le bouton au-dessus de toutes les vidéos
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Léger fond sombre pour que l'icône reste visible sur n'importe quelle vidéo
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)', // Verre dépoli translucide
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 8,
   },
 });
 

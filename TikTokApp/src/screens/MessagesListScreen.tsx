@@ -9,10 +9,12 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { auth } from '../config/firebaseconfig';
 import { subscribeToUserRooms } from '../services/chatService';
 import { getUserProfile } from '../services/userService';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../styles/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
+import Header from '../components/Header';
 
 interface Room {
   id: string;
@@ -36,7 +38,6 @@ const MessagesListScreen = ({ navigation }: any) => {
     if (!currentUser) return;
 
     const unsubscribe = subscribeToUserRooms(currentUser.uid, async (roomsData: Room[]) => {
-      // Pour chaque room, récupérer les infos de l'autre utilisateur
       const roomsWithUserInfo = await Promise.all(
         roomsData.map(async (room) => {
           const otherUserId = room.participants.find((id: string) => id !== currentUser.uid);
@@ -62,7 +63,6 @@ const MessagesListScreen = ({ navigation }: any) => {
         })
       );
 
-      // Filtrer les nulls et trier par date de mise à jour
       const validRooms = roomsWithUserInfo
         .filter((room): room is RoomWithUserInfo => room !== null)
         .sort((a, b) => {
@@ -81,6 +81,7 @@ const MessagesListScreen = ({ navigation }: any) => {
   const renderRoomItem = ({ item }: { item: RoomWithUserInfo }) => (
     <TouchableOpacity
       style={styles.roomCard}
+      activeOpacity={0.8}
       onPress={() =>
         navigation.navigate('Chat', {
           receiverId: item.otherUserId,
@@ -93,18 +94,19 @@ const MessagesListScreen = ({ navigation }: any) => {
         style={styles.avatar}
       />
       <View style={styles.roomInfo}>
-        <Text style={styles.userName}>{item.otherUserName}</Text>
+        <Text style={styles.userName}>@{item.otherUserName}</Text>
         <Text style={styles.lastMessage} numberOfLines={1}>
           {item.lastMessage}
         </Text>
       </View>
-      <Text style={styles.arrow}>❯</Text>
+      <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+        <Header title="Messages" showBackButton />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -113,10 +115,8 @@ const MessagesListScreen = ({ navigation }: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Messages 💬</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <Header title="Messages" showBackButton />
 
       <FlatList
         data={rooms}
@@ -125,6 +125,7 @@ const MessagesListScreen = ({ navigation }: any) => {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.center}>
+            <Ionicons name="chatbubbles-outline" size={44} color={COLORS.gray} style={{ marginBottom: 10 }} />
             <Text style={styles.emptyText}>Aucun message pour le moment</Text>
           </View>
         }
@@ -134,27 +135,56 @@ const MessagesListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.black },
-  header: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: COLORS.border },
-  title: { fontSize: 24, fontWeight: '800', color: COLORS.white },
-  list: { paddingHorizontal: 16, paddingVertical: 12 },
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.blackDeep 
+  },
+  list: { 
+    paddingHorizontal: SPACING.md, 
+    paddingVertical: SPACING.md 
+  },
   roomCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111',
-    padding: 12,
-    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.darkObsidian,
+    padding: 14,
+    borderRadius: BORDER_RADIUS.md,
     marginBottom: 10,
     borderWidth: 0.5,
     borderColor: COLORS.border,
+    ...SHADOWS.soft,
   },
-  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  roomInfo: { flex: 1 },
-  userName: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
-  lastMessage: { color: COLORS.lightGray, fontSize: 14, marginTop: 4 },
-  arrow: { color: COLORS.gray, fontSize: 16, marginRight: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
-  emptyText: { color: COLORS.lightGray, fontSize: 14 },
+  avatar: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25, 
+    marginRight: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  roomInfo: { 
+    flex: 1 
+  },
+  userName: { 
+    color: COLORS.white, 
+    fontSize: FONTS.sizes.md, 
+    fontWeight: '700' 
+  },
+  lastMessage: { 
+    color: COLORS.lightGray, 
+    fontSize: FONTS.sizes.sm + 1, 
+    marginTop: 4 
+  },
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 60 
+  },
+  emptyText: { 
+    color: COLORS.lightGray, 
+    fontSize: FONTS.sizes.md - 1 
+  },
 });
 
 export default MessagesListScreen;

@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  ActivityIndicator, 
+  TextInput 
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, getDocs } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { db } from '../config/firebaseconfig';
-import { COLORS } from '../styles/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
+import Header from '../components/Header';
 
 const UsersListScreen = ({ navigation }: any) => {
   const [users, setUsers] = useState<any[]>([]);
@@ -34,63 +46,166 @@ const UsersListScreen = ({ navigation }: any) => {
     fetchUsers();
   }, []);
 
-  // Filtrage dynamique (en temps réel sur la liste déjà chargée) - MUST be before conditional return
   const filteredUsers = useMemo(() => {
     return users.filter(u =>
       u.username?.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, users]);
 
-  if (loading) return <ActivityIndicator style={styles.center} color={COLORS.primary} />;
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      {/* Barre de recherche intégrée */}
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Rechercher un utilisateur..."
-        placeholderTextColor={COLORS.gray}
-        value={search}
-        onChangeText={setSearch}
-      />
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <Header title="Découvrir" showBackButton />
+
+      <View style={styles.searchBarWrapper}>
+        <View style={styles.searchBarContainer}>
+          <Ionicons name="search" size={20} color={COLORS.lightGray} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Rechercher un membre..."
+            placeholderTextColor={COLORS.gray}
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearButton} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={18} color={COLORS.lightGray} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       <FlatList
         data={filteredUsers}
         keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.card} 
             onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
+            activeOpacity={0.8}
           >
-            <Image source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+            <Image 
+              source={{ uri: item.profilePic || 'https://via.placeholder.com/50' }} 
+              style={styles.avatar} 
+            />
             <View style={styles.info}>
               <Text style={styles.name}>@{item.username}</Text>
-              <Text style={styles.likes}>❤️ {item.totalLikes} likes totaux</Text>
+              <View style={styles.likesRow}>
+                <Ionicons name="heart" size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.likes}>{item.totalLikes} j'aime totaux</Text>
+              </View>
             </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="people-outline" size={44} color={COLORS.gray} style={{ marginBottom: 10 }} />
+            <Text style={styles.emptyText}>Aucun utilisateur trouvé</Text>
+          </View>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.black, padding: 16 },
-  searchBar: {
-    backgroundColor: '#1a1a1a',
-    color: COLORS.white,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#333'
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.blackDeep 
   },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', padding: 12, borderRadius: 12, marginBottom: 10 },
-  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  info: { flex: 1 },
-  name: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },
-  likes: { color: COLORS.lightGray, fontSize: 12 },
-  center: { flex: 1, justifyContent: 'center' }
+  searchBarWrapper: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.darkObsidian,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchIcon: {
+    marginRight: SPACING.sm,
+  },
+  searchBar: {
+    flex: 1,
+    color: COLORS.white,
+    fontSize: FONTS.sizes.md + 1,
+    paddingVertical: 12,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  listContent: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+  },
+  card: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: COLORS.darkObsidian, 
+    padding: 12, 
+    borderRadius: BORDER_RADIUS.md, 
+    marginBottom: 10,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
+    ...SHADOWS.soft,
+  },
+  avatar: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    marginRight: 15,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  info: { 
+    flex: 1 
+  },
+  name: { 
+    color: COLORS.white, 
+    fontSize: FONTS.sizes.md, 
+    fontWeight: 'bold' 
+  },
+  likesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  likes: { 
+    color: COLORS.lightGray, 
+    fontSize: FONTS.sizes.xs + 2,
+    fontWeight: '500',
+  },
+  centerContainer: { 
+    flex: 1, 
+    backgroundColor: COLORS.blackDeep,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  emptyText: {
+    color: COLORS.lightGray,
+    fontSize: FONTS.sizes.md - 1,
+  },
 });
 
 export default UsersListScreen;

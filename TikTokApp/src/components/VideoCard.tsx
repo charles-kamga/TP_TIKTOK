@@ -1,6 +1,7 @@
 /**
  * TikTok Clone — VideoCard.tsx
  * Lecteur vidéo vertical HLS avec Fallback MP4 d'urgence
+ * Ajout d'une refonte graphique : bouton d'action glassmorphic et double-tap to like.
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -12,10 +13,11 @@ import {
   Pressable,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import Video, { ResizeMode, VideoRef } from 'react-native-video';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { COLORS, FONTS } from '../styles/theme';
+import { COLORS, FONTS, SHADOWS } from '../styles/theme';
 
 export interface VideoData {
   id: string;
@@ -80,6 +82,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [useFallback, setUseFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  // Animations pour le double-tap (cœur flottant au centre)
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const lastTapRef = useRef<number>(0);
+
   useEffect(() => {
     if (!isActive) {
       setIsPlaying(true);
@@ -88,6 +95,45 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const handlePress = () => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    
+    if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
+      // Double tap détecté !
+      handleDoubleTapLike();
+    } else {
+      // Simple tap classique : pause / lecture
+      togglePlayPause();
+    }
+    lastTapRef.current = now;
+  };
+
+  const handleDoubleTapLike = () => {
+    if (!isLiked && onLike) {
+      onLike();
+    }
+
+    // Lancer l'animation du gros cœur
+    heartScale.setValue(0.3);
+    heartOpacity.setValue(1);
+
+    Animated.parallel([
+      Animated.spring(heartScale, {
+        toValue: 1.1,
+        friction: 3,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartOpacity, {
+        toValue: 0,
+        duration: 700,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const hlsUrl = getHlsUrl(video.videoUrl);
@@ -119,7 +165,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Affichage de secours en cas d'erreur de lien définitive */}
       {(!isValid || hasError) && (
         <View style={[styles.video, styles.errorPlaceholder]}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Ionicons name="warning-outline" size={44} color={COLORS.error} style={{ marginBottom: 10 }} />
           <Text style={styles.errorTitle}>Vidéo non disponible</Text>
           <Text style={styles.errorSubtitle}>
             Le format ou le lien de ce post n'est pas supporté.
@@ -127,9 +173,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </View>
       )}
 
-      {/* 2. Vitre tactile pour la pause/lecture */}
+      {/* 2. Vitre tactile pour la pause/lecture & double-tap */}
       <Pressable
-        onPress={togglePlayPause}
+        onPress={handlePress}
         style={styles.touchableOverlay}
         testID="video-touchable"
       >
@@ -139,14 +185,34 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
         {!isPlaying && isValid && !hasError && (
           <View style={styles.playOverlay}>
-            <Ionicons name="play" size={60} color="rgba(255, 255, 255, 0.8)" />
+            <Ionicons name="play" size={44} color="rgba(255, 255, 255, 0.85)" />
           </View>
         )}
+
+        {/* Cœur animé flottant pour le double-tap */}
+        <Animated.View
+          style={[
+            styles.animatedHeart,
+            {
+              transform: [{ scale: heartScale }],
+              opacity: heartOpacity,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Ionicons name="heart" size={100} color={COLORS.primary} />
+        </Animated.View>
       </Pressable>
 
-      {/* 3. Informations de bas de carte */}
+      {/* 3. Informations de bas de carte avec ombres textuelles */}
       <View style={styles.bottomInfo}>
-        <TouchableOpacity onPress={() => navigation?.navigate('Chat', { receiverId: video.userId, receiverName: username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}` })} activeOpacity={0.7}>
+        <TouchableOpacity 
+          onPress={() => navigation?.navigate('Chat', { 
+            receiverId: video.userId, 
+            receiverName: username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}` 
+          })} 
+          activeOpacity={0.7}
+        >
           <Text style={styles.username}>@{username || `createur_${video.userId?.substring(0, 5) || 'anonyme'}`}</Text>
         </TouchableOpacity>
         <Text style={styles.description} numberOfLines={2}>
@@ -154,11 +220,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </Text>
       </View>
 
+      {/* Boutons d'action latéraux (Like, Commmentaire) avec style Glassmorphic */}
       <View style={styles.sideActions}>
         <TouchableOpacity style={styles.actionButton} onPress={onLike} activeOpacity={0.7}>
-          <View style={styles.iconCircle}>
+          <View style={[styles.iconCircle, isLiked && styles.iconCircleLiked]}>
             <Ionicons
-              name="heart"
+              name={isLiked ? "heart" : "heart-outline"}
               size={30}
               color={isLiked ? COLORS.primary : COLORS.white}
             />
@@ -168,7 +235,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
         <TouchableOpacity style={styles.actionButton} onPress={onComment} activeOpacity={0.7}>
           <View style={styles.iconCircle}>
-            <Ionicons name="chatbubble-ellipses" size={28} color={COLORS.white} />
+            <Ionicons name="chatbubble-ellipses-outline" size={28} color={COLORS.white} />
           </View>
           <Text style={styles.actionText}>Commenter</Text>
         </TouchableOpacity>
@@ -181,7 +248,7 @@ const styles = StyleSheet.create({
   container: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT - 60,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.blackDeep,
     position: 'relative',
   },
   video: {
@@ -207,12 +274,20 @@ const styles = StyleSheet.create({
   },
   playOverlay: {
     position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     borderRadius: 40,
     width: 80,
     height: 80,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  animatedHeart: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 15,
   },
   bottomInfo: {
     position: 'absolute',
@@ -226,10 +301,17 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.lg,
     fontWeight: 'bold',
     marginBottom: 5,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
   description: {
     color: COLORS.white,
     fontSize: FONTS.sizes.md,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
+    lineHeight: 20,
   },
   sideActions: {
     position: 'absolute',
@@ -243,30 +325,34 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 5,
-    marginRight: 0,
+    marginBottom: 6,
+    ...SHADOWS.soft,
+  },
+  iconCircleLiked: {
+    borderColor: 'rgba(255, 0, 80, 0.25)',
   },
   actionText: {
     color: COLORS.white,
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   errorPlaceholder: {
-    backgroundColor: '#151515',
+    backgroundColor: '#0F0F12',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
     zIndex: 1,
-  },
-  errorIcon: {
-    fontSize: 44,
-    marginBottom: 10,
   },
   errorTitle: {
     color: COLORS.white,

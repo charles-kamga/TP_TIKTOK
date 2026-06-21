@@ -1,7 +1,16 @@
 declare module '@env' {
-  export const GOOGLE_WEB_CLIENT_ID: string;
-  // Ajoutez ici les autres variables présentes dans votre fichier .env
   export const CLOUDINARY_CLOUD_NAME: string;
-  export const CLOUDINARY_UPLOAD_PRESET: string; // For videos
-  export const CLOUDINARY_IMAGE_PRESET: string; // For images
+  export const CLOUDINARY_API_KEY: string;
+  export const CLOUDINARY_VIDEO_UPLOAD_PRESET: string;
+  export const CLOUDINARY_IMAGE_UPLOAD_PRESET: string;
+
+  export const FIREBASE_API_KEY: string;
+  export const FIREBASE_AUTH_DOMAIN: string;
+  export const FIREBASE_PROJECT_ID: string;
+  export const FIREBASE_STORAGE_BUCKET: string;
+  export const FIREBASE_MESSAGING_SENDER_ID: string;
+  export const FIREBASE_APP_ID: string;
+  export const FIREBASE_MEASUREMENT_ID: string;
+
+  export const GOOGLE_CLIENT_ID: string;
 }

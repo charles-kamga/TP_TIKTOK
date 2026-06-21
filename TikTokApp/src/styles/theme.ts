@@ -16,11 +16,14 @@ export const COLORS = {
   primary: '#FF0050',       // Rouge TikTok
   secondary: '#00F2EA',     // Cyan TikTok
   black: '#000000',         // Fond principal
+  blackDeep: '#050505',     // Fond ultra-profond pour écrans premium
   white: '#FFFFFF',         // Texte principal
   darkGray: '#1C1C1C',      // Fond des cartes
+  darkObsidian: '#0F0F12',  // Gris obsidian texturé
   gray: '#555555',          // Texte secondaire
-  lightGray: '#888888',     // Icônes inactives
-  border: '#222222',        // Bordures
+  lightGray: '#888888',     // Icônes inactives/textes secondaires clairs
+  border: '#222222',        // Bordures standard
+  borderGlow: '#333333',    // Bordures en surbrillance
 
   // Statuts
   success: '#00C851',
@@ -35,11 +38,53 @@ export const COLORS = {
   like: '#FF0050',
   likeInactive: '#FFFFFF',
 
-  // Overlays vidéo
+  // Overlays vidéo & Glassmorphism
   overlay: 'rgba(0, 0, 0, 0.4)',
   overlayLight: 'rgba(0, 0, 0, 0.2)',
-
+  glassBg: 'rgba(255, 255, 255, 0.08)',
+  glassBorder: 'rgba(255, 255, 255, 0.15)',
+  glassBgDark: 'rgba(15, 15, 18, 0.65)',
   transparent: 'transparent',
+};
+
+// Gradients configurés pour l'application
+export const GRADIENTS = {
+  primary: ['#FF0050', '#80003A'],
+  secondary: ['#00F2EA', '#007A75'],
+  darkCard: ['#19191C', '#0F0F12'],
+  glassGlow: ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)'],
+};
+
+// Ombres et halos (glowing) pour le design premium
+export const SHADOWS = {
+  soft: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  medium: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  glowPrimary: {
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  glowSecondary: {
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
 };
 
 // ─────────────────────────────────────────

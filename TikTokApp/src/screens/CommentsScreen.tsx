@@ -2,6 +2,7 @@
  * TikTok Clone — CommentsScreen.tsx
  * Bottom sheet modal pour afficher les commentaires (comme TikTok)
  * Intégration Firebase pour l'ajout et l'affichage des commentaires
+ * Refonte visuelle : styles premium obsidian, poignée (handle), et icônes vectorielles.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -16,11 +17,13 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Platform,
 } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { auth, db } from '../config/firebaseconfig';
 import { addComment, getCommentsByVideo } from '../services/interactionService';
-import { COLORS } from '../styles/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../styles/theme';
 
 interface CommentsScreenProps {
   videoId: string;
@@ -127,11 +130,11 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
         </View>
         <Text style={styles.commentText}>{item.text}</Text>
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.likeButton}>
-            <Text style={styles.likeIcon}>❤️</Text>
+          <TouchableOpacity style={styles.likeButton} activeOpacity={0.7}>
+            <Ionicons name="heart-outline" size={15} color={COLORS.lightGray} />
             <Text style={styles.likeCount}>{item.likesCount || 0}</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.7}>
             <Text style={styles.replyText}>Répondre</Text>
           </TouchableOpacity>
         </View>
@@ -150,58 +153,65 @@ const CommentsScreen = ({ videoId, visible, onClose }: CommentsScreenProps) => {
         {/* 3. La feuille de commentaires */}
         <View style={styles.sheet}>
           <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>💬 {comments.length} commentaires</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeButton}>✕</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Barre de préhension (drag handle) style iOS */}
+            <View style={styles.dragHandleContainer}>
+              <View style={styles.dragHandle} />
+            </View>
 
-        {/* Liste des commentaires */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.white} />
-          </View>
-        ) : (
-          <FlatList
-            data={comments}
-            style={styles.commentsList}
-            renderItem={renderComment}
-            keyExtractor={item => item.id}
-            scrollEnabled={true}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Aucun commentaire pour le moment</Text>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>💬 {comments.length} commentaires</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButtonContainer} activeOpacity={0.7}>
+                <Ionicons name="close" size={20} color={COLORS.lightGray} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Liste des commentaires */}
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
               </View>
-            }
-          />
-        )}
-
-        {/* Input pour ajouter un commentaire */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Ajouter un commentaire..."
-            placeholderTextColor={COLORS.lightGray}
-            value={newComment}
-            onChangeText={setNewComment}
-            editable={!isSubmitting}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, isSubmitting && styles.sendButtonDisabled]}
-            onPress={handleAddComment}
-            disabled={isSubmitting || !newComment.trim()}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Text style={styles.sendIcon}>➤</Text>
+              <FlatList
+                data={comments}
+                style={styles.commentsList}
+                renderItem={renderComment}
+                keyExtractor={item => item.id}
+                scrollEnabled={true}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="chatbubbles-outline" size={40} color={COLORS.gray} style={{ marginBottom: 10 }} />
+                    <Text style={styles.emptyText}>Aucun commentaire pour le moment</Text>
+                  </View>
+                }
+              />
             )}
-          </TouchableOpacity>
-        </View>
-      </View>
+
+            {/* Input pour ajouter un commentaire */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Ajouter un commentaire..."
+                placeholderTextColor={COLORS.lightGray}
+                value={newComment}
+                onChangeText={setNewComment}
+                editable={!isSubmitting}
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, isSubmitting && styles.sendButtonDisabled]}
+                onPress={handleAddComment}
+                disabled={isSubmitting || !newComment.trim()}
+                activeOpacity={0.8}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Ionicons name="send" size={18} color={COLORS.white} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
     </Modal>
@@ -215,58 +225,70 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   absoluteOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     zIndex: 9999,
   },
   sheet: {
     height: '65%',
-    backgroundColor: COLORS.black,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: COLORS.darkObsidian,
+    borderTopLeftRadius: BORDER_RADIUS.lg + 4,
+    borderTopRightRadius: BORDER_RADIUS.lg + 4,
     overflow: 'hidden',
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...SHADOWS.medium,
     zIndex: 10000,
   },
   container: {
     flex: 1,
   },
+  dragHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xs + 2,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4.5,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.sm,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#222',
+    borderBottomColor: COLORS.border,
   },
   headerTitle: {
     color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.md + 1,
+    fontWeight: '700',
   },
-  closeButton: {
-    color: COLORS.lightGray,
-    fontSize: 18,
-    padding: 4,
+  closeButtonContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 6,
+    borderRadius: BORDER_RADIUS.full,
   },
   commentsList: {
-    flex: 1, // FORCE la liste à ne pas dépasser l'espace disponible
+    flex: 1,
   },
   listContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
   },
   commentItem: {
     flexDirection: 'row',
-    marginBottom: 16,
-    paddingHorizontal: 8,
+    marginBottom: SPACING.md,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: SPACING.sm + 4,
+    backgroundColor: COLORS.darkGray,
   },
   commentContent: {
     flex: 1,
@@ -279,38 +301,38 @@ const styles = StyleSheet.create({
   },
   author: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: FONTS.sizes.sm + 1,
     fontWeight: '600',
   },
   timestamp: {
     color: COLORS.lightGray,
-    fontSize: 12,
+    fontSize: FONTS.sizes.xs + 1,
   },
   commentText: {
     color: COLORS.white,
-    fontSize: 14,
-    marginBottom: 8,
-    lineHeight: 20,
+    fontSize: FONTS.sizes.md - 1,
+    marginBottom: SPACING.sm,
+    lineHeight: 18,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 20,
+    alignItems: 'center',
   },
   likeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  likeIcon: {
-    fontSize: 16,
-  },
   likeCount: {
     color: COLORS.lightGray,
-    fontSize: 12,
+    fontSize: FONTS.sizes.xs + 1,
+    fontWeight: '500',
   },
   replyText: {
     color: COLORS.lightGray,
-    fontSize: 12,
+    fontSize: FONTS.sizes.xs + 1,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -321,40 +343,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 50,
   },
   emptyText: {
     color: COLORS.lightGray,
-    fontSize: 14,
+    fontSize: FONTS.sizes.md - 1,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + 4,
     borderTopWidth: 0.5,
-    borderTopColor: '#333',
-    marginBottom: 12,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.blackDeep,
+    marginBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   input: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: COLORS.darkObsidian,
     borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.md + 4,
     paddingVertical: 10,
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: FONTS.sizes.md - 1,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
   },
   sendButton: {
-    marginLeft: 8,
-    padding: 8,
+    marginLeft: SPACING.sm + 2,
+    backgroundColor: COLORS.primary,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.soft,
   },
   sendButtonDisabled: {
     opacity: 0.5,
-  },
-  sendIcon: {
-    fontSize: 20,
-    color: COLORS.primary, // Donne une couleur (rose TikTok) pour la visibilité
+    backgroundColor: COLORS.darkObsidian,
   },
 });
 
